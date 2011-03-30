@@ -16,7 +16,6 @@ from django.db.models.query import QuerySet
 from django.utils.encoding import smart_str
 from django.utils.translation import ugettext as _
 from django.utils.text import get_text_list
-from django.utils.functional import update_wrapper
 
 from django_extensions.admin.widgets import ForeignKeySearchInput
 
@@ -27,6 +26,29 @@ if 'reversion' in settings.INSTALLED_APPS:
 else:
     from django.contrib.admin import ModelAdmin
 
+WRAPPER_ASSIGNMENTS = ('__module__', '__name__', '__doc__')
+WRAPPER_UPDATES = ('__dict__',)
+def update_wrapper(wrapper,
+                   wrapped,
+                   assigned = WRAPPER_ASSIGNMENTS,
+                   updated = WRAPPER_UPDATES):
+    """Update a wrapper function to look like the wrapped function
+
+       wrapper is the function to be updated
+       wrapped is the original function
+       assigned is a tuple naming the attributes assigned directly
+       from the wrapped function to the wrapper function (defaults to
+       functools.WRAPPER_ASSIGNMENTS)
+       updated is a tuple naming the attributes off the wrapper that
+       are updated with the corresponding attribute from the wrapped
+       function (defaults to functools.WRAPPER_UPDATES)
+    """
+    for attr in assigned:
+        setattr(wrapper, attr, getattr(wrapped, attr))
+    for attr in updated:
+        getattr(wrapper, attr).update(getattr(wrapped, attr))
+    # Return the wrapper so this can be used as a decorator via curry()
+    return wrapper
 
 class ForeignKeyAutocompleteAdmin(ModelAdmin):
     """Admin class for models using the autocomplete feature.
